@@ -52,40 +52,35 @@ public class TheImageDownloader extends Application {
                 Task task = new Task<Void>() {
                     @Override
                     public Void call() {
-                        for (int i=1; i<=sheet.getRows(); i++) {
+                        for (int i = 1; i <= sheet.getRows(); i++) {
                             updateProgress(i, sheet.getRows());
-                            System.out.println(i);
                             try {
                                 FileUtils.copyURLToFile(new URL(img), new File("images/" + dtf.format(time) + "/" + str[i - 1][0] + str[i - 1][1] + str[i - 1][2]));
-                            } catch (Exception ex) {
-                                System.out.println(ex);
+                            } catch (Exception exception) {
+                                System.out.println(exception);
                               }
                         }
                         return null;
                     }
                 };
-                
                 lbl.textProperty().bind(Bindings.createStringBinding(() -> Integer.toString((int) (task.progressProperty().get() * sheet.getRows())) + " / " + sheet.getRows(), task.progressProperty()));
-
                 task.setOnSucceeded(e -> {
                     btn.setDisable(false);
                     lbl.textProperty().unbind();
                     changeLabel("Done!", "#338833");
                 });
-
                 new Thread(task).start();
             } catch (Exception exception) {
-                    if (exception instanceof BiffException)
-                        changeLabel("Invalid .xls file", "#ff0000");
-                    if (exception instanceof NullPointerException)
-                        changeLabel("You didn't open anything", "#ff0000");
-                    System.out.println(exception);
+                if (exception instanceof BiffException)
+                    changeLabel("Invalid .xls file", "#ff0000");
+                if (exception instanceof NullPointerException)
+                    changeLabel("You didn't open anything", "#ff0000");
+                System.out.println(exception);
               }
         });
-        
         stage.setScene(new Scene(new StackPane(lbl, btn), 300, 250));
         stage.getIcons().add(new Image(getClass().getResourceAsStream("/carussel.png")));
-        stage.setTitle("Image Downloader 1.3");
+        stage.setTitle("Image Downloader 1.4");
         stage.setResizable(false);
         stage.show();
     }
