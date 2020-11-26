@@ -7,8 +7,6 @@ import java.time.format.DateTimeFormatter;
 import javafx.application.Application;
 import javafx.beans.binding.Bindings;
 import javafx.concurrent.Task;
-import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -19,79 +17,81 @@ import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
-import jxl.Cell;
 import jxl.Sheet;
 import jxl.Workbook;
+import jxl.read.biff.BiffException;
 import org.apache.commons.io.FileUtils;
 
 public class TheImageDownloader extends Application {
-    private final Button btn = new Button("Browse..");
+    private final Label lbl = new Label();
     private final FileChooser fileChooser = new FileChooser();
-    private final String image = "https://media-cdn.tripadvisor.com/media/photo-s/10/04/ec/46/el-sitio-mas-espectacular.jpg";
+    private final Button btn = new Button("START");
+    private Workbook xls;
+    private String[][] str;
+    private final String img = "https://media-cdn.tripadvisor.com/media/photo-s/10/04/ec/46/el-sitio-mas-espectacular.jpg";
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy.MM.dd. HH'h' mm'm'");
-    private final Label label = new Label();
     @Override
     public void start(Stage stage) {
+        lbl.setPadding(new Insets(60, 0, 0, 0));
+        lbl.setVisible(false);
+        fileChooser.setTitle("Open .xls file");
+        fileChooser.getExtensionFilters().addAll(new ExtensionFilter(".xls", "*.xls"));
         btn.setFocusTraversable(false);
-        btn.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent event) {
+        btn.setOnAction(event -> {
+            try {
                 LocalDateTime time = LocalDateTime.now();
-                label.setVisible(true);
+                lbl.setVisible(true);
                 changeLabel("Browsing..", "#000000");
-                Workbook xls;
-                String[][] data;
-                try {
-                    xls = Workbook.getWorkbook(fileChooser.showOpenDialog(stage));
-                    changeLabel("In progress..", "#000000");
-                    Sheet sheet  = xls.getSheet(0);
-                    data = new String[sheet.getRows()][sheet.getColumns()];
-                    for (int r = 0; r < sheet.getRows(); r++)
-                        for (int c = 0; c < sheet.getColumns(); c++) {
-                            Cell cell = sheet.getCell(c, r);
-                            data[r][c] = cell.getContents();
-                        }
-
+                xls = Workbook.getWorkbook(fileChooser.showOpenDialog(stage));
+                btn.setDisable(true);
+                Sheet sheet = xls.getSheet(0);
+                str = new String[sheet.getRows()][sheet.getColumns()];
+                for (int r = 0; r < sheet.getRows(); r++)
+                    for (int c = 0; c < sheet.getColumns(); c++)
+                        str[r][c] = sheet.getCell(c, r).getContents();
                 Task task = new Task<Void>() {
-                    @Override public Void call() {
+                    @Override
+                    public Void call() {
                         for (int i=1; i<=sheet.getRows(); i++) {
                             updateProgress(i, sheet.getRows());
                             System.out.println(i);
                             try {
-                                FileUtils.copyURLToFile(new URL(image), new File("images/" + dtf.format(time) + "/" + data[i - 1][0] + data[i - 1][1] + data[i - 1][2]));
+                                FileUtils.copyURLToFile(new URL(img), new File("images/" + dtf.format(time) + "/" + str[i - 1][0] + str[i - 1][1] + str[i - 1][2]));
                             } catch (Exception ex) {
                                 System.out.println(ex);
-                            }
+                              }
                         }
                         return null;
                     }
                 };
-               label.textProperty().bind(
-                        Bindings.createStringBinding(() -> Integer.toString((int) (task.progressProperty().get() * sheet.getRows())) + " / " + sheet.getRows(), task.progressProperty()));
-               
+                
+                lbl.textProperty().bind(Bindings.createStringBinding(() -> Integer.toString((int) (task.progressProperty().get() * sheet.getRows())) + " / " + sheet.getRows(), task.progressProperty()));
+
+                task.setOnSucceeded(e -> {
+                    btn.setDisable(false);
+                    lbl.textProperty().unbind();
+                    changeLabel("Done!", "#338833");
+                });
+
                 new Thread(task).start();
-                } catch (Exception exception) {
-                    changeLabel("Not a valid .xls file", "#ff0000");
+            } catch (Exception exception) {
+                    if (exception instanceof BiffException)
+                        changeLabel("Invalid .xls file", "#ff0000");
+                    if (exception instanceof NullPointerException)
+                        changeLabel("You didn't open anything", "#ff0000");
                     System.out.println(exception);
-                }
-            }
+              }
         });
         
-        fileChooser.setTitle("Open .xls");
-        fileChooser.getExtensionFilters().addAll(new ExtensionFilter("All Files", "*.*"));
-        
-        label.setPadding(new Insets(60, 0, 0, 0));
-        label.setVisible(false);
-        
-        stage.setScene(new Scene(new StackPane(label, btn), 300, 250));
+        stage.setScene(new Scene(new StackPane(lbl, btn), 300, 250));
         stage.getIcons().add(new Image(getClass().getResourceAsStream("/carussel.png")));
-        stage.setTitle("Image Downloader 1.0");
+        stage.setTitle("Image Downloader 1.3");
         stage.setResizable(false);
         stage.show();
     }
     public void changeLabel(String text, String color) {
-        label.setText(text);
-        label.setTextFill(Color.web(color));
+        lbl.setText(text);
+        lbl.setTextFill(Color.web(color));
     }
     public static void main(String[] args) {
         launch(args);
