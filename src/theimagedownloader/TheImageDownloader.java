@@ -28,14 +28,13 @@ public class TheImageDownloader extends Application {
     private final Button btn = new Button("START");
     private Workbook xls;
     private String[][] str;
-    private final String img = "https://media-cdn.tripadvisor.com/media/photo-s/10/04/ec/46/el-sitio-mas-espectacular.jpg";
     private final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy.MM.dd. HH'h' mm'm'");
     @Override
     public void start(Stage stage) {
         lbl.setPadding(new Insets(60, 0, 0, 0));
         lbl.setVisible(false);
         fileChooser.setTitle("Open .xls file");
-        fileChooser.getExtensionFilters().addAll(new ExtensionFilter(".xls", "*.xls"));
+        fileChooser.getExtensionFilters().add(new ExtensionFilter(".xls", "*.xls"));
         btn.setFocusTraversable(false);
         btn.setOnAction(event -> {
             try {
@@ -55,7 +54,7 @@ public class TheImageDownloader extends Application {
                         for (int i = 1; i <= sheet.getRows(); i++) {
                             updateProgress(i, sheet.getRows());
                             try {
-                                FileUtils.copyURLToFile(new URL(img), new File("images/" + dtf.format(time) + "/" + str[i - 1][0] + str[i - 1][1] + str[i - 1][2]));
+                                FileUtils.copyURLToFile(new URL(str[i - 1][0]), new File("images/" + dtf.format(time) + "/" + i + "-" + str[i - 1][0].substring(69, 80) + ".png"));
                             } catch (Exception exception) {
                                 System.out.println(exception);
                               }
