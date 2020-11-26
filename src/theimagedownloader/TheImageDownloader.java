@@ -5,6 +5,8 @@ import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import javafx.application.Application;
+import javafx.beans.binding.Bindings;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -49,12 +51,25 @@ public class TheImageDownloader extends Application {
                             Cell cell = sheet.getCell(c, r);
                             data[r][c] = cell.getContents();
                         }
-                    for (int i = 0; i < sheet.getRows(); i++) {
-                        System.out.println("Saving image " + (i + 1) + "/" + sheet.getRows());
-                        changeLabel("Saving image " + (i + 1) + "/" + sheet.getRows(), "#000000");
-                        FileUtils.copyURLToFile(new URL(image), new File("images/" + dtf.format(time) + "/" + data[i][0] + data[i][1] + data[i][2]));
+
+                Task task = new Task<Void>() {
+                    @Override public Void call() {
+                        for (int i=1; i<=sheet.getRows(); i++) {
+                            updateProgress(i, sheet.getRows());
+                            System.out.println(i);
+                            try {
+                                FileUtils.copyURLToFile(new URL(image), new File("images/" + dtf.format(time) + "/" + data[i - 1][0] + data[i - 1][1] + data[i - 1][2]));
+                            } catch (Exception ex) {
+                                System.out.println(ex);
+                            }
+                        }
+                        return null;
                     }
-                    changeLabel("Done!", "#338833");
+                };
+               label.textProperty().bind(
+                        Bindings.createStringBinding(() -> Integer.toString((int) (task.progressProperty().get() * sheet.getRows())) + " / " + sheet.getRows(), task.progressProperty()));
+               
+                new Thread(task).start();
                 } catch (Exception exception) {
                     changeLabel("Not a valid .xls file", "#ff0000");
                     System.out.println(exception);
